@@ -262,7 +262,7 @@ app.listen(3000, () => {
 });
 ```
 
-###Running the Application
+### Running the Application
 
 Start the Application: Use the following command to run your application.
 
@@ -271,3 +271,254 @@ bun src/app.js
 ```
 
 **Access Swagger Documentation**: Open your browser and navigate to http://localhost:3000/docs to view the API documentation.
+
+
+
+# WebSocket Implementation User Manual
+
+**Overview**
+
+This manual outlines the implementation of WebSocket communication using ElysiaJS, with a single base WebSocket URL. It covers server-side and client-side code, and includes a file structure overview.
+
+**File Structure**
+```bash
+src/
+|-- websocket/
+|   |-- websocket.js
+|   |-- websocket-manager.js
+|-- services/
+|   |-- userService.js
+|   |-- productService.js
+|   |-- messageHandlers.js
+|-- app.js
+|-- client.js
+```
+
+**Server-Side Implementation**
+
+1. WebSocket Manager (src/websocket/websocket-manager.js)
+
+Handles WebSocket connections and broadcasting messages.
+
+```typescript
+const connections = new Map(); // Map to store WebSocket connections
+
+/**
+ * Add a WebSocket connection to the connections map.
+ * @param {string} id - The unique ID for the connection.
+ * @param {WebSocket} ws - The WebSocket connection object.
+ */
+export function addConnection(id, ws) {
+    connections.set(id, ws);
+}
+
+/**
+ * Remove a WebSocket connection from the connections map.
+ * @param {string} id - The unique ID for the connection.
+ */
+export function removeConnection(id) {
+    connections.delete(id);
+}
+
+/**
+ * Get a WebSocket connection from the connections map.
+ * @param {string} id - The unique ID for the connection.
+ * @returns {WebSocket | undefined} - The WebSocket connection object or undefined if not found.
+ */
+export function getConnection(id) {
+    return connections.get(id);
+}
+
+/**
+ * Send a message to a specific WebSocket connection.
+ * @param {string} id - The unique ID for the connection.
+ * @param {Object} message - The message to send.
+ */
+export function sendToConnection(id, message) {
+    const ws = getConnection(id);
+    if (ws) {
+        ws.send(JSON.stringify(message));
+    } else {
+        console.log(`No connection found for id: ${id}`);
+    }
+}
+
+/**
+ * Broadcast a message to all WebSocket connections.
+ * @param {Object} message - The message to broadcast.
+ */
+export function broadcast(message) {
+    connections.forEach(ws => ws.send(JSON.stringify(message)));
+}
+```
+
+**2. WebSocket Handler (src/websocket/websocket.js)**
+
+Sets up the WebSocket server and routes messages based on type.
+```typescript
+import { Elysia, t } from 'elysia';
+import { addConnection, removeConnection, sendToConnection, broadcast } from './websocket-manager';
+import { handleUserMessage, handleProductMessage } from '../services/messageHandlers';
+
+// Create a single WebSocket instance
+const websocketApp = new Elysia();
+
+// WebSocket endpoint with base URL
+websocketApp.ws('/ws', {
+    body: t.Object({
+        type: t.String(), // Type of message (e.g., 'user', 'product')
+        id: t.String(), // ID for routing messages
+        data: t.Any()   // The message data
+    }),
+
+    open(ws) {
+        console.log('Client connected');
+        // Optionally send a welcome message
+        ws.send({
+            type: 'info',
+            message: 'Connection established'
+        });
+    },
+
+    message(ws, { type, id, data }) {
+        switch (type) {
+            case 'user':
+                handleUserMessage(id, data);
+                break;
+            case 'product':
+                handleProductMessage(id, data);
+                break;
+            default:
+                console.log('Unknown message type:', type);
+        }
+    },
+
+    close(ws) {
+        console.log('Client disconnected');
+        // Optionally handle disconnection logic
+    }
+});
+
+export default websocketApp;
+```
+
+**3. Message Handlers (src/services/messageHandlers.js)**
+
+Routes messages to specific services and emits events.
+
+```typescript
+import { sendToConnection, broadcast } from '../websocket/websocket-manager';
+import { userService } from './userService';
+import { productService } from './productService';
+
+// Handle user-related messages
+export function handleUserMessage(id, data) {
+    if (data.action === 'update') {
+        userService.updateUser(id, data.payload);
+    } else if (data.action === 'create') {
+        userService.createUser(id, data.payload);
+    }
+
+    // Broadcast an event to all clients
+    broadcast({
+        type: 'user',
+        id,
+        data: {
+            action: 'user_updated',
+            payload: data.payload
+        }
+    });
+}
+
+// Handle product-related messages
+export function handleProductMessage(id, data) {
+    if (data.action === 'update') {
+        productService.updateProduct(id, data.payload);
+    } else if (data.action === 'create') {
+        productService.createProduct(id, data.payload);
+    }
+
+    // Broadcast an event to all clients
+    broadcast({
+        type: 'product',
+        id,
+        data: {
+            action: 'product_updated',
+            payload: data.payload
+        }
+    });
+}
+```
+**Main App File (src/app.js)**
+
+Sets up the main application and integrates the WebSocket handler.
+```
+import { Elysia } from 'elysia';
+import websocketApp from './websocket/websocket';
+
+// Create the main Elysia application instance
+const app = new Elysia();
+
+// Use the WebSocket instance
+app.use(websocketApp);
+
+app.listen(3000, () => {
+    console.log('Server is running at http://localhost:3000');
+});
+```
+
+**Client-Side Implementation**
+
+**Client-Side (client.js)**
+
+Manages a single WebSocket connection and handles different message types.
+
+```typescript
+// Create a single WebSocket connection to the base URL
+const socket = new WebSocket('ws://localhost:3000/ws');
+
+// Handle the WebSocket connection open event
+socket.onopen = () => {
+    console.log('WebSocket connection established.');
+    
+    // Example: Send a message to subscribe or interact with the server
+    socket.send(JSON.stringify({
+        type: 'user',
+        id: '12345',
+        data: {
+            action: 'subscribe'
+        }
+    }));
+};
+
+// Handle incoming messages from the server
+socket.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    console.log('Received message from server:', message);
+    
+    if (message.type === 'user') {
+        console.log('User update:', message.data);
+    } else if (message.type === 'product') {
+        console.log('Product update:', message.data);
+    }
+};
+
+// Handle WebSocket connection close event
+socket.onclose = (event) => {
+    console.log('WebSocket connection closed:', event);
+};
+
+// Handle WebSocket errors
+socket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+};
+```
+
+
+
+
+
+
+
+
+
