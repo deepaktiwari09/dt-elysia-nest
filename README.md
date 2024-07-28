@@ -23,6 +23,7 @@ This manual provides a comprehensive guide for setting up a modular ElysiaJS app
 
 The recommended folder structure for your project is as follows:
 
+```bash
 project-root/
 │
 ├── src/
@@ -59,6 +60,7 @@ project-root/
 ├── package.json
 ├── README.md
 └── .gitignore
+```
 
 ## Setting Up ElysiaJS
 
