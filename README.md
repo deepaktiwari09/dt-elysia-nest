@@ -1,27 +1,28 @@
-## User Manual: ElysiaJS Implementation with DTOs, Mongoose, and Swagger
+# ElysiaJS MVC Implementation
 
-## Table of Contents
+This guide provides comprehensive instructions for setting up an ElysiaJS application, including integration with DTOs, Mongoose, Swagger, WebSocket, Cron Jobs, and GraphQL.
 
-1. [Introduction](#introduction)
-2. [Folder Structure](#folder-structure)
-3. [Setting Up ElysiaJS](#setting-up-elysiajs)
-4. [Creating DTO Models](#creating-dto-models)
-5. [Defining Controllers](#defining-controllers)
-6. [Implementing Services](#implementing-services)
-7. [Connecting to MongoDB](#connecting-to-mongodb)
-8. [Integrating Swagger](#integrating-swagger)
-9. [Running the Application](#running-the-application)
-10. [Sample Code](#sample-code)
+Table of Contents
 
----
+	1.	Introduction
+	2.	Folder Structure
+	3.	Setting Up ElysiaJS
+	4.	Creating DTO Models
+	5.	Defining Controllers
+	6.	Implementing Services
+	7.	Connecting to MongoDB
+	8.	Integrating Swagger
+	9.	Running the Application
+	10.	WebSocket Implementation
+	11.	Cron Job Implementation
+	12.	GraphQL Integration
+	13.	Sample Code
 
 ## Introduction
 
-This manual provides a comprehensive guide for setting up a modular ElysiaJS application with support for Data Transfer Objects (DTOs), Mongoose for MongoDB interaction, and Swagger for API documentation.
+This manual guides you through setting up an ElysiaJS application with Data Transfer Objects (DTOs), Mongoose for MongoDB, Swagger for API documentation, WebSocket for real-time communication, Cron Jobs for scheduled tasks, and GraphQL for flexible queries.
 
-## Folder Structure
-
-The recommended folder structure for your project is as follows:
+### Folder Structure
 
 ```bash
 project-root/
@@ -55,29 +56,44 @@ project-root/
 │   ├── config/
 │   │   └── database.js
 │   │
+│   ├── graphql/
+│   │   ├── resolvers/
+│   │   │   ├── user.resolver.js
+│   │   │   └── product.resolver.js
+│   │   ├── schema.js
+│   │   └── index.js
+│   │
+│   ├── websocket/
+│   │   ├── websocket.js
+│   │   └── websocket-manager.js
+│   │
+│   ├── cron.ts
 │   ├── app.js
+│   └── client.js
 │
 ├── package.json
 ├── README.md
 └── .gitignore
 ```
 
-## Setting Up ElysiaJS
+### Setting Up ElysiaJS
 
-1. **Install ElysiaJS**: Use npm or yarn to install ElysiaJS in your project.
+**1.	Install ElysiaJS:**
+```bash
+npm install elysia
+```
+**2.	Create an Elysia Instance:**
+Initialize the Elysia application in app.js:
+```typescript
+import { Elysia } from 'elysia';
 
-   ``bash
-   npm install elysia
-   ``
-  	2.	Create an Elysia Instance: Initialize the Elysia application in app.js.
+const app = new Elysia();
+```
 
-Creating DTO Models
+### Creating DTO Models
+DTOs define the structure and validation rules for request and response data.
 
-DTOs (Data Transfer Objects) define the structure and validation rules for request and response data.
-
-Input DTO Example (User):
-
-**src/modules/users/dtos/user.input.dto.js:**
+**User Input DTO:**
 
 ```typescript
 import { Elysia, t } from 'elysia';
@@ -86,19 +102,14 @@ const UserInputDTO = new Elysia({ name: 'Model.UserInput' })
     .model({
         'user.create': t.Object({
             name: t.String(),
-            email: t.String({
-                format: 'email'
-            })
+            email: t.String({ format: 'email' })
         })
     });
 
 export default UserInputDTO;
 ```
 
-Response DTO Example (User):
-
-**src/modules/users/dtos/user.response.dto.js:**
-
+**User Response DTO:**
 ```typescript
 import { Elysia, t } from 'elysia';
 
@@ -107,22 +118,18 @@ const UserResponseDTO = new Elysia({ name: 'Model.UserResponse' })
         'user.response': t.Object({
             id: t.String(),
             name: t.String(),
-            email: t.String({
-                format: 'email'
-            })
+            email: t.String({ format: 'email' })
         })
     });
 
 export default UserResponseDTO;
 ```
-Defining Controllers
 
-Controllers manage incoming requests and send responses. They use DTOs for validation.
+### Defining Controllers
 
-Users Controller Example:
+Controllers manage incoming requests and responses, using DTOs for validation.
 
-**src/modules/users/controllers/users.controller.js:**
-
+**Users Controller:**
 ```typescript
 import { Elysia } from 'elysia';
 import UserInputDTO from '../dtos/user.input.dto';
@@ -168,40 +175,109 @@ const usersController = (services) => {
 export default usersController;
 ```
 
-Implementing Services
+### Implementing Services
 
-Services handle business logic and database interactions.
-
-User Service Example:
-
-**src/modules/users/services/user.service.js:**
+Define your services in separate files.
+user.service.js:
 
 ```typescript
-import mongoose from 'mongoose';
-import UserModel from '../models/user.model';
+import { Elysia } from 'elysia';
 
-const userService = {
-  async createUser(data) {
-    const user = new UserModel(data);
-    return await user.save();
-  },
+const userService = new Elysia();
 
-  async getUsers() {
-    return await UserModel.find();
-  },
+userService.decorate('getUsers', () => {
+  return ['User1', 'User2', 'User3'];
+});
 
-  async getUserById(id) {
-    return await UserModel.findById(id);
-  }
-};
+userService.decorate('getUserById', (id) => {
+  return { id, name: `User${id}` };
+});
 
 export default userService;
 ```
-Connecting to MongoDB
 
-Ensure Mongoose connects to MongoDB only once. Place this code in config/database.js.
+product.service.js:
+```typescript
+import { Elysia } from 'elysia';
 
-**src/config/database.js:**
+const productService = new Elysia();
+
+productService.decorate('getProducts', () => {
+  return ['Product1', 'Product2', 'Product3'];
+});
+
+productService.decorate('getProductById', (id) => {
+  return { id, name: `Product${id}` };
+});
+
+export default productService;
+```
+
+**Inject services into controllers.**
+
+```typescript
+import { Elysia } from 'elysia';
+
+const usersController = (services) => {
+  const app = new Elysia();
+
+  app
+    .get('/users', ({ response }) => {
+      const users = services.getUsers();
+      response.send(users);
+    })
+    .get('/users/:id', ({ params, response }) => {
+      const user = services.getUserById(params.id);
+      response.send(user);
+    })
+    .post('/users', ({ body, response }) => {
+      response.send(`This action creates a new user with the following data: ${JSON.stringify(body)}`);
+    });
+
+  return app;
+};
+
+export default usersController;
+```
+**Combine Controllers and Services in the Main Application:**
+app.js:
+
+```typescript
+import { Elysia } from 'elysia';
+import swaggerPlugin from 'elysia-swagger'; // Example plugin, replace with actual one if different
+import userService from './user.service';
+import productService from './product.service';
+import usersController from './users.controller';
+import productsController from './products.controller';
+
+const app = new Elysia();
+
+// Use services as middleware
+app.use(userService);
+app.use(productService);
+
+// Inject services into controllers and use them
+app.use(usersController(userService));
+app.use(productsController(productService));
+
+// Apply Swagger plugin
+app.use(swaggerPlugin({
+  swaggerOptions: {
+    title: 'My API',
+    version: '1.0.0',
+  },
+  routePrefix: '/docs', // Swagger UI will be available at /docs
+}));
+
+app.listen(3000, () => {
+  console.log('Server is running at http://localhost:3000');
+  console.log('Swagger docs are available at http://localhost:3000/docs');
+});
+```
+
+### Connecting to MongoDB
+
+Ensure Mongoose connects to MongoDB. Place this code in config/database.js:
 
 ```typescript
 import mongoose from 'mongoose';
@@ -221,11 +297,34 @@ const connectToDatabase = async () => {
 export { connectToDatabase };
 ```
 
-Integrating Swagger
+**use in your services**
 
-Swagger provides API documentation. Use the elysia-swagger plugin (replace with actual if different).
+```typescript
+import mongoose from 'mongoose';
+import UserModel from '../models/user.model';
+import { Elysia } from 'elysia';
 
-**src/app.js:**
+const userService = new Elysia();
+
+userService.decorate('createUser', async () => {
+  const user = new UserModel(data);
+    return await user.save();
+});
+
+userService.decorate('getUsers', async () => {
+   return await UserModel.find();
+});
+
+
+export default userService;
+
+```
+
+### Integrating Swagger
+
+Swagger provides API documentation. Use the elysia-swagger plugin.
+
+Setup Swagger in app.js:
 
 ```typescript
 import { Elysia } from 'elysia';
@@ -262,25 +361,8 @@ app.listen(3000, () => {
 });
 ```
 
-### Running the Application
+### WebSocket Implementation
 
-Start the Application: Use the following command to run your application.
-
-```bash
-bun src/app.js
-```
-
-**Access Swagger Documentation**: Open your browser and navigate to http://localhost:3000/docs to view the API documentation.
-
-
-
-# WebSocket Implementation User Manual
-
-**Overview**
-
-This manual outlines the implementation of WebSocket communication using ElysiaJS, with a single base WebSocket URL. It covers server-side and client-side code, and includes a file structure overview.
-
-**File Structure**
 ```bash
 src/
 |-- websocket/
@@ -294,46 +376,23 @@ src/
 |-- client.js
 ```
 
-**Server-Side Implementation**
-
-1. WebSocket Manager (src/websocket/websocket-manager.js)
-
-Handles WebSocket connections and broadcasting messages.
+**WebSocket Manager (src/websocket/websocket-manager.js):**
 
 ```typescript
-const connections = new Map(); // Map to store WebSocket connections
+const connections = new Map();
 
-/**
- * Add a WebSocket connection to the connections map.
- * @param {string} id - The unique ID for the connection.
- * @param {WebSocket} ws - The WebSocket connection object.
- */
 export function addConnection(id, ws) {
     connections.set(id, ws);
 }
 
-/**
- * Remove a WebSocket connection from the connections map.
- * @param {string} id - The unique ID for the connection.
- */
 export function removeConnection(id) {
     connections.delete(id);
 }
 
-/**
- * Get a WebSocket connection from the connections map.
- * @param {string} id - The unique ID for the connection.
- * @returns {WebSocket | undefined} - The WebSocket connection object or undefined if not found.
- */
 export function getConnection(id) {
     return connections.get(id);
 }
 
-/**
- * Send a message to a specific WebSocket connection.
- * @param {string} id - The unique ID for the connection.
- * @param {Object} message - The message to send.
- */
 export function sendToConnection(id, message) {
     const ws = getConnection(id);
     if (ws) {
@@ -343,180 +402,63 @@ export function sendToConnection(id, message) {
     }
 }
 
-/**
- * Broadcast a message to all WebSocket connections.
- * @param {Object} message - The message to broadcast.
- */
 export function broadcast(message) {
-    connections.forEach(ws => ws.send(JSON.stringify(message)));
+connections.forEach(ws => ws.send(JSON.stringify(message)));
 }
 ```
 
-**2. WebSocket Handler (src/websocket/websocket.js)**
+**WebSocket Setup (src/websocket/websocket.js)**:
 
-Sets up the WebSocket server and routes messages based on type.
 ```typescript
-import { Elysia, t } from 'elysia';
-import { addConnection, removeConnection, sendToConnection, broadcast } from './websocket-manager';
-import { handleUserMessage, handleProductMessage } from '../services/messageHandlers';
+import WebSocket from 'ws';
+import { addConnection, removeConnection, broadcast } from './websocket-manager';
 
-// Create a single WebSocket instance
-const websocketApp = new Elysia();
+const wss = new WebSocket.Server({ port: 8080 });
 
-// WebSocket endpoint with base URL
-websocketApp.ws('/ws', {
-    body: t.Object({
-        type: t.String(), // Type of message (e.g., 'user', 'product')
-        id: t.String(), // ID for routing messages
-        data: t.Any()   // The message data
-    }),
+wss.on('connection', (ws, req) => {
+    const id = req.headers['sec-websocket-key'];
+    addConnection(id, ws);
 
-    open(ws) {
-        console.log('Client connected');
-        // Optionally send a welcome message
-        ws.send({
-            type: 'info',
-            message: 'Connection established'
-        });
-    },
+    ws.on('message', message => {
+        const data = JSON.parse(message);
+        // Handle incoming message
+        console.log(`Received message: ${data}`);
+        broadcast(data); // Broadcast received message to all connections
+    });
 
-    message(ws, { type, id, data }) {
-        switch (type) {
-            case 'user':
-                handleUserMessage(id, data);
-                break;
-            case 'product':
-                handleProductMessage(id, data);
-                break;
-            default:
-                console.log('Unknown message type:', type);
-        }
-    },
-
-    close(ws) {
-        console.log('Client disconnected');
-        // Optionally handle disconnection logic
-    }
+    ws.on('close', () => {
+        removeConnection(id);
+    });
 });
 
-export default websocketApp;
+console.log('WebSocket server is running on ws://localhost:8080');
 ```
 
-**3. Message Handlers (src/services/messageHandlers.js)**
-
-Routes messages to specific services and emits events.
-
+Client-Side Implementation
 ```typescript
-import { sendToConnection, broadcast } from '../websocket/websocket-manager';
-import { userService } from './userService';
-import { productService } from './productService';
+const ws = new WebSocket('ws://localhost:8080');
 
-// Handle user-related messages
-export function handleUserMessage(id, data) {
-    if (data.action === 'update') {
-        userService.updateUser(id, data.payload);
-    } else if (data.action === 'create') {
-        userService.createUser(id, data.payload);
-    }
-
-    // Broadcast an event to all clients
-    broadcast({
-        type: 'user',
-        id,
-        data: {
-            action: 'user_updated',
-            payload: data.payload
-        }
-    });
-}
-
-// Handle product-related messages
-export function handleProductMessage(id, data) {
-    if (data.action === 'update') {
-        productService.updateProduct(id, data.payload);
-    } else if (data.action === 'create') {
-        productService.createProduct(id, data.payload);
-    }
-
-    // Broadcast an event to all clients
-    broadcast({
-        type: 'product',
-        id,
-        data: {
-            action: 'product_updated',
-            payload: data.payload
-        }
-    });
-}
-```
-**Main App File (src/app.js)**
-
-Sets up the main application and integrates the WebSocket handler.
-```
-import { Elysia } from 'elysia';
-import websocketApp from './websocket/websocket';
-
-// Create the main Elysia application instance
-const app = new Elysia();
-
-// Use the WebSocket instance
-app.use(websocketApp);
-
-app.listen(3000, () => {
-    console.log('Server is running at http://localhost:3000');
-});
-```
-
-**Client-Side Implementation**
-
-**Client-Side (client.js)**
-
-Manages a single WebSocket connection and handles different message types.
-
-```typescript
-// Create a single WebSocket connection to the base URL
-const socket = new WebSocket('ws://localhost:3000/ws');
-
-// Handle the WebSocket connection open event
-socket.onopen = () => {
-    console.log('WebSocket connection established.');
-    
-    // Example: Send a message to subscribe or interact with the server
-    socket.send(JSON.stringify({
-        type: 'user',
-        id: '12345',
-        data: {
-            action: 'subscribe'
-        }
-    }));
+ws.onopen = () => {
+    console.log('WebSocket connection opened');
+    ws.send(JSON.stringify({ type: 'greeting', message: 'Hello Server!' }));
 };
 
-// Handle incoming messages from the server
-socket.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    console.log('Received message from server:', message);
-    
-    if (message.type === 'user') {
-        console.log('User update:', message.data);
-    } else if (message.type === 'product') {
-        console.log('Product update:', message.data);
-    }
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log('Received from server:', data);
 };
 
-// Handle WebSocket connection close event
-socket.onclose = (event) => {
-    console.log('WebSocket connection closed:', event);
+ws.onclose = () => {
+    console.log('WebSocket connection closed');
 };
 
-// Handle WebSocket errors
-socket.onerror = (error) => {
-    console.error('WebSocket error:', error);
+ws.onerror = (error) => {
+    console.log('WebSocket error:', error);
 };
 ```
 
 
-
-# Cron Job Implementation User Manual
+### Cron Job Implementation User Manual
 
 Overview
 
@@ -604,13 +546,13 @@ app.listen(3000, () => {
 ```
 
 
-# GraphQL Integration with ElysiaJS
+### GraphQL Integration with ElysiaJS
 
-## Overview
+Overview
 
 This manual describes how to integrate GraphQL with an ElysiaJS application. It includes setting up GraphQL schema and resolvers, and integrating them with ElysiaJS.
 
-## Folder Structure
+**Folder Structure**
 
 Ensure your project follows this folder structure:
 
@@ -635,7 +577,7 @@ src/
 |– app.js
 ```
 
-## Installation
+### Installation
 
 Install the necessary dependencies for GraphQL:
 
@@ -758,10 +700,3 @@ app.listen(3000, () => {
 Testing GraphQL
 
 Use a GraphQL client or playground to test your GraphQL API. Access the GraphQL playground at:
-
-
-
-
-
-
-
