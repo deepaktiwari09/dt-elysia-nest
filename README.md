@@ -604,4 +604,164 @@ app.listen(3000, () => {
 ```
 
 
+# GraphQL Integration with ElysiaJS
+
+## Overview
+
+This manual describes how to integrate GraphQL with an ElysiaJS application. It includes setting up GraphQL schema and resolvers, and integrating them with ElysiaJS.
+
+## Folder Structure
+
+Ensure your project follows this folder structure:
+
+```bash
+src/
+|– graphql/
+|   |– resolvers/
+|   |   |– user.resolver.js
+|   |   |– product.resolver.js
+|   |– schema.js
+|   |– index.js
+|– modules/
+|   |– user/
+|   |   |– user.controller.js
+|   |   |– user.service.js
+|   |   |– user.dtos.js
+|   |– product/
+|   |   |– product.controller.js
+|   |   |– product.service.js
+|   |   |– product.dtos.js
+|– cron.ts
+|– app.js
+```
+
+## Installation
+
+Install the necessary dependencies for GraphQL:
+
+```bash
+npm install graphql apollo-server
+```
+
+Setting Up GraphQL
+
+1. Define GraphQL Schema
+
+Create a schema file to define your types and operations.
+
+src/graphql/schema.js
+
+```typescript
+import { gql } from 'apollo-server';
+
+const typeDefs = gql`
+  type Query {
+    users: [User]
+    products: [Product]
+    user(id: ID!): User
+    product(id: ID!): Product
+  }
+
+  type Mutation {
+    createUser(name: String!): User
+    createProduct(name: String!): Product
+  }
+
+  type User {
+    id: ID!
+    name: String!
+  }
+
+  type Product {
+    id: ID!
+    name: String!
+  }
+`;
+
+export default typeDefs;
+```
+
+2. Implement GraphQL Resolvers
+
+Create resolver files to handle the logic for your queries and mutations.
+
+User Resolver (src/graphql/resolvers/user.resolver.js):
+
+```typescript
+
+import { userService } from '../modules/user/user.service';
+
+const userResolver = {
+  Query: {
+    users: async () => await userService.getUsers(),
+    user: async (_, { id }) => await userService.getUserById(id),
+  },
+  Mutation: {
+    createUser: async (_, { name }) => await userService.createUser({ name }),
+  },
+};
+
+export default userResolver;
+```
+
+3. Combine Resolvers and Schema
+
+Combine the schema and resolvers to create an Apollo Server instance.
+
+src/graphql/index.js
+
+```typescript
+
+import { ApolloServer } from 'apollo-server';
+import typeDefs from './schema';
+import userResolver from './resolvers/user.resolver';
+import productResolver from './resolvers/product.resolver';
+
+const resolvers = {
+  ...userResolver,
+  ...productResolver,
+};
+
+const server = new ApolloServer({ typeDefs, resolvers });
+
+export default server;
+```
+
+4. Integrate GraphQL with ElysiaJS
+
+Update your main application file to include the GraphQL server middleware.
+
+src/app.js
+
+```typescript
+import { Elysia } from 'elysia';
+import server from './graphql/index';
+
+const app = new Elysia();
+
+// Set up the HTTP server to work with Apollo Server
+server.applyMiddleware({ app, path: '/graphql' });
+
+// Add your HTTP routes and middleware
+// Example of adding a REST endpoint
+app.get('/api/hello', (req, res) => {
+  res.send('Hello World');
+});
+
+// Listen to the server
+app.listen(3000, () => {
+  console.log('Server is running at http://localhost:3000');
+  console.log(`GraphQL Playground available at http://localhost:3000/graphql`);
+});
+```
+
+Testing GraphQL
+
+Use a GraphQL client or playground to test your GraphQL API. Access the GraphQL playground at:
+
+
+
+
+
+
 
