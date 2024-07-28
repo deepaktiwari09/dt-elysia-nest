@@ -516,9 +516,92 @@ socket.onerror = (error) => {
 
 
 
+# Cron Job Implementation User Manual
 
+Overview
 
+This manual provides details on integrating cron jobs into an ElysiaJS application with a module-based folder structure. It includes configuration for cron jobs, interaction with services, and WebSocket integration.
 
+```bash
+src/
+|-- websocket/
+|   |-- websocket.js
+|   |-- websocket-manager.js
+|-- modules/
+|   |-- user/
+|   |   |-- user.controller.js
+|   |   |-- user.service.js
+|   |   |-- user.dtos.js
+|   |-- product/
+|   |   |-- product.controller.js
+|   |   |-- product.service.js
+|   |   |-- product.dtos.js
+|-- cron.ts
+|-- app.js
+|-- client.js
+```
+
+Cron Job Configuration
+
+1. Cron Job File (src/cron.ts)
+
+   This file sets up the cron job that runs at specified intervals, integrating with the user and product services to perform tasks such as checking for updates or sending notifications.
+
+```typescript
+import { Elysia, cron } from 'elysia';
+import { userService } from './modules/user/user.service';
+import { productService } from './modules/product/product.service';
+
+const app = new Elysia();
+
+// Define a cron job to run every 10 seconds
+app.use(
+    cron({
+        name: 'heartbeat',
+        pattern: '*/10 * * * * *', // Every 10 seconds
+        async run() {
+            console.log('Heartbeat');
+
+            // Check for user updates
+            try {
+                const usersWithUpdates = await userService.checkForUpdates();
+                usersWithUpdates.forEach(user => {
+                    console.log(`User update: ${JSON.stringify(user)}`);
+                });
+            } catch (error) {
+                console.error('Error checking for user updates:', error);
+            }
+
+            // Check for product updates
+            try {
+                const productsWithUpdates = await productService.checkForUpdates();
+                productsWithUpdates.forEach(product => {
+                    console.log(`Product update: ${JSON.stringify(product)}`);
+                });
+            } catch (error) {
+                console.error('Error checking for product updates:', error);
+            }
+
+            // Send notifications
+            try {
+                const notifications = await userService.getPendingNotifications();
+                notifications.forEach(notification => {
+                    console.log(`Sending notification: ${JSON.stringify(notification)}`);
+                });
+            } catch (error) {
+                console.error('Error sending notifications:', error);
+            }
+        }
+    })
+);
+
+app.use(userController);
+app.use(productController);
+
+app.listen(3000, () => {
+    console.log('Server is running at http://localhost:3000');
+});
+```
 
 
 
