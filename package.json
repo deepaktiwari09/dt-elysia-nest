@@ -1,0 +1,34 @@
+{
+  "name": "dt-elysia-nest",
+  "version": "1.0.0",
+  "description": "A template repository for integrating ElysiaJS with MVC pattern.",
+  "author": "Deepak Tiwari",
+  "displayName": "ElysiaNest",
+  "scripts": {
+    "dev": "bun --watch src/app.ts",
+    "build": "bun build src/app.ts",
+    "start": "NODE_ENV=production bun src/app.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@chneau/elysia-logger": "^1.0.0",
+    "@elysiajs/cron": "^1.1.0",
+    "@elysiajs/swagger": "^1.1.0",
+    "elysia": "latest",
+    "logixlysia": "^3.6.0",
+    "mongoose": "^8.5.1"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "module": "src/app.js",
+  "keywords": [
+    "ElysiaJS",
+    "NestJS",
+    "template",
+    "backend",
+    "JavaScript",
+    "TypeScript"
+  ],
+  "license": "MIT"
+}

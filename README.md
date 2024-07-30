@@ -4,7 +4,7 @@ This guide provides comprehensive instructions for setting up an ElysiaJS applic
 
 Table of Contents
 
-	1.	Introduction
+    1.	Introduction
 	2.	Folder Structure
 	3.	Setting Up ElysiaJS
 	4.	Creating DTO Models
@@ -30,36 +30,26 @@ project-root/
 ├── src/
 │   ├── modules/
 │   │   ├── users/
-│   │   │   ├── controllers/
-│   │   │   │   └── users.controller.js
-│   │   │   ├── models/
-│   │   │   │   └── user.model.js
-│   │   │   ├── services/
-│   │   │   │   └── user.service.js
+│   │   │   ├── users.controller.ts
+│   │   │   ├── user.schema.ts
+|   |   |   |── user.resolver.ts
+│   │   │   ├── user.service.ts
 │   │   │   ├── dtos/
-│   │   │   │   ├── user.input.dto.js
-│   │   │   │   └── user.response.dto.js
-│   │   │   └── index.js
+│   │   │       ├── user.input.dto.ts
 │   │   │
 │   │   ├── products/
-│   │   │   ├── controllers/
-│   │   │   │   └── products.controller.js
-│   │   │   ├── models/
-│   │   │   │   └── product.model.js
-│   │   │   ├── services/
-│   │   │   │   └── product.service.js
+│   │   │   ├── products.controller.ts
+│   │   │   ├── product.schema.ts
+|   |   |   |── product.resolver.ts
+│   │   │   ├── product.service.ts
 │   │   │   ├── dtos/
-│   │   │   │   ├── product.input.dto.js
-│   │   │   │   └── product.response.dto.js
-│   │   │   └── index.js
+│   │   │       ├── product.input.dto.ts
 │   │   │
 │   ├── config/
 │   │   └── database.js
+│   │   └── logger.ts
 │   │
 │   ├── graphql/
-│   │   ├── resolvers/
-│   │   │   ├── user.resolver.js
-│   │   │   └── product.resolver.js
 │   │   ├── schema.js
 │   │   └── index.js
 │   │
@@ -79,11 +69,14 @@ project-root/
 ### Setting Up ElysiaJS
 
 **1.	Install ElysiaJS:**
+
 ```bash
-npm install elysia
+yarn add elysia
 ```
+
 **2.	Create an Elysia Instance:**
-Initialize the Elysia application in app.js:
+        Initialize the Elysia application in app.js:
+
 ```typescript
 import { Elysia } from 'elysia';
 
@@ -91,6 +84,7 @@ const app = new Elysia();
 ```
 
 ### Creating DTO Models
+
 DTOs define the structure and validation rules for request and response data.
 
 **User Input DTO:**
@@ -110,6 +104,7 @@ export default UserInputDTO;
 ```
 
 **User Response DTO:**
+
 ```typescript
 import { Elysia, t } from 'elysia';
 
@@ -130,6 +125,7 @@ export default UserResponseDTO;
 Controllers manage incoming requests and responses, using DTOs for validation.
 
 **Users Controller:**
+
 ```typescript
 import { Elysia } from 'elysia';
 import UserInputDTO from '../dtos/user.input.dto';
@@ -197,6 +193,7 @@ export default userService;
 ```
 
 product.service.js:
+
 ```typescript
 import { Elysia } from 'elysia';
 
@@ -239,6 +236,7 @@ const usersController = (services) => {
 
 export default usersController;
 ```
+
 **Combine Controllers and Services in the Main Application:**
 app.js:
 
@@ -435,6 +433,7 @@ console.log('WebSocket server is running on ws://localhost:8080');
 ```
 
 Client-Side Implementation
+
 ```typescript
 const ws = new WebSocket('ws://localhost:8080');
 
@@ -456,7 +455,6 @@ ws.onerror = (error) => {
     console.log('WebSocket error:', error);
 };
 ```
-
 
 ### Cron Job Implementation User Manual
 
@@ -544,7 +542,6 @@ app.listen(3000, () => {
     console.log('Server is running at http://localhost:3000');
 });
 ```
-
 
 ### GraphQL Integration with ElysiaJS
 
