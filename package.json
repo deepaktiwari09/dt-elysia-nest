@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@chneau/elysia-logger": "^1.0.0",
+    "@elysiajs/cors": "^1.1.0",
     "@elysiajs/cron": "^1.1.0",
+    "@elysiajs/static": "^1.1.0",
     "@elysiajs/swagger": "^1.1.0",
     "elysia": "latest",
     "logixlysia": "^3.6.0",
