@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import getByIdInputDto, { newOrgType } from "./dtos/organisation.input.dto";
+import  { newOrgType } from "./dtos/organisation.input.dto";
 import OrganizationModel from "./organisation.schema";
 
 const organizationService = new Elysia()
